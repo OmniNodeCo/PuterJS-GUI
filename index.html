@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Puter.js GUI</title>
+    <script src="https://js.puter.com/v2/"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);
+            min-height: 100vh;
+            color: #fff;
+        }
+
+        /* NAVBAR */
+        .navbar {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(10px);
+            padding: 15px 30px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .navbar .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, #00d4ff, #7b2ff7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .navbar .nav-links {
+            display: flex;
+            gap: 20px;
+        }
+
+        .navbar .nav-links button {
+            background: none;
+            border: none;
+            color: #ccc;
+            cursor: pointer;
+            font-size: 0.95rem;
+            padding: 6px 14px;
+            border-radius: 20px;
+            transition: all 0.3s;
+        }
+
+        .navbar .nav-links button:hover,
+        .navbar .nav-links button.active {
+            background: rgba(0, 212, 255, 0.15);
+            color: #00d4ff;
+        }
+
+        /* MAIN LAYOUT */
+        .container {
+            max-width: 1100px;
+            margin: 40px auto;
+            padding: 0 20px;
+        }
+
+        /* TABS */
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+
+        /* CARDS */
+        .card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 28px;
+            margin-bottom: 24px;
+            backdrop-filter: blur(6px);
+            transition: transform 0.2s;
+        }
+
+        .card:hover {
+            transform: translateY(-2px);
+        }
+
+        .card h2 {
+            font-size: 1.2rem;
+            margin-bottom: 16px;
+            color: #00d4ff;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* INPUTS */
+        input[type="text"],
+        input[type="password"],
+        textarea,
+        select {
+            width: 100%;
+            padding: 10px 14px;
+            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 8px;
+            color: #fff;
+            font-size: 0.95rem;
+            margin-bottom: 12px;
+            outline: none;
+            transition: border 0.3s;
+        }
+
+        input:focus, textarea:focus, select:focus {
+            border-color: #00d4ff;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        select option {
+            background: #1a1a2e;
+        }
+
+        /* BUTTONS */
+        .btn {
+            padding: 10px 22px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(90deg, #00d4ff, #7b2ff7);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            opacity: 0.85;
+            transform: scale(1.03);
+        }
+
+        .btn-danger {
+            background: linear-gradient(90deg, #ff4d4d, #c0392b);
+            color: #fff;
+        }
+
+        .btn-danger:hover {
+            opacity: 0.85;
+        }
+
+        .btn-secondary {
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            border: 1px solid rgba(255,255,255,0.2);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.18);
+        }
+
+        /* OUTPUT BOX */
+        .output-box {
+            background: rgba(0,0,0,0.35);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 8px;
+            padding: 14px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.88rem;
+            color: #a0f0c0;
+            min-height: 60px;
+            max-height: 200px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            margin-top: 12px;
+        }
+
+        /* FILE LIST */
+        .file-list {
+            list-style: none;
+            margin-top: 12px;
+        }
+
+        .file-list li {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 14px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 8px;
+            margin-bottom: 8px;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+
+        .file-list li .file-name {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .file-list li .file-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .file-list li .file-actions button {
+            padding: 4px 10px;
+            font-size: 0.8rem;
+        }
+
+        /* AI CHAT */
+        .chat-box {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 16px;
+            min-height: 200px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin-bottom: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .chat-msg {
+            padding: 10px 14px;
+            border-radius: 10px;
+            max-width: 80%;
+            font-size: 0.92rem;
+            line-height: 1.5;
+        }
+
+        .chat-msg.user {
+            background: linear-gradient(90deg, #00d4ff22, #7b2ff722);
+            border: 1px solid #00d4ff44;
+            align-self: flex-end;
+        }
+
+        .chat-msg.ai {
+            background: rgba(255,255,255,0.07);
+            border: 1px solid rgba(255,255,255,0.1);
+            align-self: flex-start;
+        }
+
+        .chat-input-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .chat-input-row input {
+            margin-bottom: 0;
+            flex: 1;
+        }
+
+        /* KV STORE */
+        .kv-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .kv-row input {
+            margin-bottom: 0;
+            flex: 1;
+        }
+
+        /* GRID */
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 700px) {
+            .grid-2 { grid-template-columns: 1fr; }
+            .navbar .nav-links { gap: 8px; }
+        }
+
+        /* BADGE */
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background: rgba(0, 212, 255, 0.15);
+            color: #00d4ff;
+            margin-left: 8px;
+        }
+
+        /* LOADER */
+        .loader {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.2);
+            border-top-color: #00d4ff;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* TOAST */
+        #toast {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: rgba(0,212,255,0.15);
+            border: 1px solid #00d4ff;
+            color: #fff;
+            padding: 12px 22px;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            display: none;
+            z-index: 999;
+            backdrop-filter: blur(8px);
+        }
+
+        /* DASHBOARD STATS */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        @media (max-width: 700px) {
+            .stats-grid { grid-template-columns: 1fr; }
+        }
+
+        .stat-card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .stat-card .stat-value {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(90deg, #00d4ff, #7b2ff7);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .stat-card .stat-label {
+            font-size: 0.85rem;
+            color: #aaa;
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav class="navbar">
+    <div class="logo">⚡ Puter GUI</div>
+    <div class="nav-links">
+        <button class="active" onclick="showTab('dashboard')">🏠 Dashboard</button>
+        <button onclick="showTab('files')">📁 Files</button>
+        <button onclick="showTab('ai')">🤖 AI Chat</button>
+        <button onclick="showTab('kv')">🗄️ Key-Value</button>
+        <button onclick="showTab('auth')">🔐 Auth</button>
+    </div>
+</nav>
+
+<div class="container">
+
+    <!-- ===================== DASHBOARD ===================== -->
+    <div id="tab-dashboard" class="tab-content active">
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="stat-files">—</div>
+                <div class="stat-label">Files Stored</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-kv">—</div>
+                <div class="stat-label">KV Entries</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="stat-user">—</div>
+                <div class="stat-label">Logged In</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>🚀 Welcome to Puter.js GUI</h2>
+            <p style="color:#aaa; line-height:1.7;">
+                This GUI lets you interact with <strong style="color:#fff;">Puter.js</strong> — 
+                a powerful cloud platform with file storage, AI, authentication, and key-value storage — 
+                all from your browser without a backend.
+            </p>
+            <br>
+            <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                <button class="btn btn-primary" onclick="showTab('files')">📁 Manage Files</button>
+                <button class="btn btn-primary" onclick="showTab('ai')">🤖 Try AI Chat</button>
+                <button class="btn btn-secondary" onclick="loadDashboard()">🔄 Refresh Stats</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>📋 Quick Actions</h2>
+            <div class="grid-2">
+                <div>
+                    <p style="color:#aaa; margin-bottom:10px;">Write a quick note to cloud storage:</p>
+                    <input type="text" id="quick-filename" placeholder="filename.txt">
+                    <textarea id="quick-content" placeholder="Type your note here..."></textarea>
+                    <button class="btn btn-primary" onclick="quickSave()">💾 Save to Cloud</button>
+                </div>
+                <div>
+                    <p style="color:#aaa; margin-bottom:10px;">Ask AI a quick question:</p>
+                    <input type="text" id="quick-ai-input" placeholder="Ask anything...">
+                    <button class="btn btn-primary" onclick="quickAI()" style="margin-bottom:10px;">✨ Ask AI</button>
+                    <div class="output-box" id="quick-ai-output">AI response will appear here...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================== FILES ===================== -->
+    <div id="tab-files" class="tab-content">
+        <div class="card">
+            <h2>📁 File Manager</h2>
+
+            <div class="grid-2">
+                <!-- Upload / Create -->
+                <div>
+                    <p style="color:#aaa; margin-bottom:10px; font-size:0.9rem;">Create or overwrite a file:</p>
+                    <input type="text" id="file-name" placeholder="e.g. notes/hello.txt">
+                    <textarea id="file-content" placeholder="File content..."></textarea>
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <button class="btn btn-primary" onclick="writeFile()">💾 Save File</button>
+                        <button class="btn btn-secondary" onclick="readFile()">📖 Read File</button>
+                        <button class="btn btn-danger" onclick="deleteFile()">🗑️ Delete</button>
+                    </div>
+                    <div class="output-box" id="file-output">Output will appear here...</div>
+                </div>
+
+                <!-- Upload from device -->
+                <div>
+                    <p style="color:#aaa; margin-bottom:10px; font-size:0.9rem;">Upload from your device:</p>
+                    <input type="text" id="upload-path" placeholder="Upload path (e.g. uploads/)">
+                    <input type="file" id="file-upload" style="background:rgba(255,255,255,0.05); padding:8px; margin-bottom:12px;">
+                    <button class="btn btn-primary" onclick="uploadFile()">⬆️ Upload File</button>
+
+                    <p style="color:#aaa; margin: 18px 0 10px; font-size:0.9rem;">List files in a directory:</p>
+                    <input type="text" id="list-path" placeholder="Directory path (leave empty for root)">
+                    <button class="btn btn-secondary" onclick="listFiles()">📂 List Files</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>📂 File Browser</h2>
+            <ul class="file-list" id="file-list">
+                <li style="color:#aaa; justify-content:center;">Click "List Files" above to browse files.</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- ===================== AI CHAT ===================== -->
+    <div id="tab-ai" class="tab-content">
+        <div class="card">
+            <h2>🤖 AI Chat <span class="badge">GPT-4o</span></h2>
+
+            <div style="display:flex; gap:10px; margin-bottom:14px; flex-wrap:wrap;">
+                <div style="flex:1; min-width:200px;">
+                    <label style="font-size:0.85rem; color:#aaa;">Model</label>
+                    <select id="ai-model">
+                        <option value="gpt-4o">GPT-4o</option>
+                        <option value="gpt-4o-mini">GPT-4o Mini</option>
+                        <option value="claude-3-5-sonnet">Claude 3.5 Sonnet</option>
+                        <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
+                    </select>
+                </div>
+                <div style="flex:1; min-width:200px;">
+                    <label style="font-size:0.85rem; color:#aaa;">System Prompt</label>
+                    <input type="text" id="ai-system" placeholder="You are a helpful assistant." style="margin-bottom:0;">
+                </div>
+            </div>
+
+            <div class="chat-box" id="chat-box">
+                <div class="chat-msg ai">👋 Hello! I'm powered by Puter.js AI. Ask me anything!</div>
+            </div>
+
+            <div class="chat-input-row">
+                <input type="text" id="chat-input" placeholder="Type your message..." onkeydown="if(event.key==='Enter') sendChat()">
+                <button class="btn btn-primary" onclick="sendChat()">➤ Send</button>
+                <button class="btn btn-secondary" onclick="clearChat()">🗑️</button>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>🖼️ Image Generation</h2>
+            <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
+                <input type="text" id="img-prompt" placeholder="Describe the image..." style="flex:1; margin-bottom:0;">
+                <button class="btn btn-primary" onclick="generateImage()">🎨 Generate</button>
+            </div>
+            <div id="img-output" style="margin-top:12px; min-height:60px; color:#aaa;">
+                Generated image will appear here.
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================== KEY-VALUE ===================== -->
+    <div id="tab-kv" class="tab-content">
+        <div class="card">
+            <h2>🗄️ Key-Value Store</h2>
+            <div class="grid-2">
+                <div>
+                    <h3 style="color:#aaa; font-size:0.9rem; margin-bottom:10px;">SET Value</h3>
+                    <input type="text" id="kv-set-key" placeholder="Key">
+                    <input type="text" id="kv-set-val" placeholder="Value">
+                    <button class="btn btn-primary" onclick="kvSet()">💾 Set</button>
+                </div>
+                <div>
+                    <h3 style="color:#aaa; font-size:0.9rem; margin-bottom:10px;">GET Value</h3>
+                    <input type="text" id="kv-get-key" placeholder="Key">
+                    <div style="display:flex; gap:8px;">
+                        <button class="btn btn-primary" onclick="kvGet()">🔍 Get</button>
+                        <button class="btn btn-danger" onclick="kvDelete()">🗑️ Delete</button>
+                    </div>
+                    <div class="output-box" id="kv-output">Result will appear here...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>📋 All KV Entries</h2>
+            <button class="btn btn-secondary" onclick="kvList()" style="margin-bottom:12px;">🔄 Load All</button>
+            <div class="output-box" id="kv-list-output" style="max-height:300px;">Click "Load All" to see entries.</div>
+        </div>
+    </div>
+
+    <!-- ===================== AUTH ===================== -->
+    <div id="tab-auth" class="tab-content">
+        <div class="grid-2">
+            <div class="card">
+                <h2>🔐 Authentication</h2>
+                <p style="color:#aaa; margin-bottom:16px; font-size:0.9rem;">
+                    Sign in or check your current Puter session.
+                </p>
+                <button class="btn btn-primary" onclick="authSignIn()" style="margin-bottom:10px; width:100%;">
+                    🔑 Sign In with Puter
+                </button>
+                <button class="btn btn-secondary" onclick="authCheck()" style="margin-bottom:10px; width:100%;">
+                    👤 Check Auth Status
+                </button>
+                <button class="btn btn-danger" onclick="authSignOut()" style="width:100%;">
+                    🚪 Sign Out
+                </button>
+            </div>
+
+            <div class="card">
+                <h2>👤 User Info</h2>
+                <div class="output-box" id="auth-output" style="min-height:180px;">
+User info will appear here after signing in...
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ==================== UTILITIES ====================
+
+function showTab(name) {
+    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.nav-links button').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    const buttons = document.querySelectorAll('.nav-links button');
+    const labels = ['dashboard','files','ai','kv','auth'];
+    const idx = labels.indexOf(name);
+    if (idx >= 0) buttons[idx].classList.add('active');
+}
+
+function toast(msg, duration = 3000) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.style.display = 'block';
+    setTimeout(() => t.style.display = 'none', duration);
+}
+
+function setOutput(id, msg) {
+    document.getElementById(id).textContent = msg;
+}
+
+// ==================== DASHBOARD ====================
+
+async function loadDashboard() {
+    try {
+        const files = await puter.fs.readdir('/');
+        document.getElementById('stat-files').textContent = files.length;
+    } catch {
+        document.getElementById('stat-files').textContent = '?';
+    }
+
+    try {
+        const keys = await puter.kv.list();
+        document.getElementById('stat-kv').textContent = keys.length;
+    } catch {
+        document.getElementById('stat-kv').textContent = '?';
+    }
+
+    try {
+        const user = await puter.auth.getUser();
+        document.getElementById('stat-user').textContent = user ? '✅' : '❌';
+    } catch {
+        document.getElementById('stat-user').textContent = '❌';
+    }
+}
+
+async function quickSave() {
+    const name = document.getElementById('quick-filename').value.trim() || 'quick-note.txt';
+    const content = document.getElementById('quick-content').value;
+    try {
+        await puter.fs.write(name, content, { overwrite: true });
+        toast('✅ File saved: ' + name);
+    } catch(e) {
+        toast('❌ Error: ' + e.message);
+    }
+}
+
+async function quickAI() {
+    const input = document.getElementById('quick-ai-input').value.trim();
+    if (!input) return;
+    setOutput('quick-ai-output', '⏳ Thinking...');
+    try {
+        const response = await puter.ai.chat(input);
+        setOutput('quick-ai-output', response?.message?.content || String(response));
+    } catch(e) {
+        setOutput('quick-ai-output', '❌ Error: ' + e.message);
+    }
+}
+
+// ==================== FILES ====================
+
+async function writeFile() {
+    const name = document.getElementById('file-name').value.trim();
+    const content = document.getElementById('file-content').value;
+    if (!name) return toast('⚠️ Enter a file name');
+    try {
+        await puter.fs.write(name, content, { overwrite: true });
+        setOutput('file-output', '✅ File saved: ' + name);
+        toast('✅ Saved!');
+    } catch(e) {
+        setOutput('file-output', '❌ Error: ' + e.message);
+    }
+}
+
+async function readFile() {
+    const name = document.getElementById('file-name').value.trim();
+    if (!name) return toast('⚠️ Enter a file name');
+    try {
+        const blob = await puter.fs.read(name);
+        const text = await blob.text();
+        document.getElementById('file-content').value = text;
+        setOutput('file-output', '✅ File loaded: ' + name);
+        toast('✅ Loaded!');
+    } catch(e) {
+        setOutput('file-output', '❌ Error: ' + e.message);
+    }
+}
+
+async function deleteFile() {
+    const name = document.getElementById('file-name').value.trim();
+    if (!name) return toast('⚠️ Enter a file name');
+    try {
+        await puter.fs.delete(name);
+        setOutput('file-output', '✅ Deleted: ' + name);
+        toast('🗑️ Deleted!');
+    } catch(e) {
+        setOutput('file-output', '❌ Error: ' + e.message);
+    }
+}
+
+async function uploadFile() {
+    const fileInput = document.getElementById('file-upload');
+    const path = document.getElementById('upload-path').value.trim() || '/';
+    if (!fileInput.files.length) return toast('⚠️ Select a file first');
+    const file = fileInput.files[0];
+    try {
+        await puter.fs.upload([file], path);
+        setOutput('file-output', '✅ Uploaded: ' + file.name);
+        toast('✅ Uploaded!');
+    } catch(e) {
+        setOutput('file-output', '❌ Error: ' + e.message);
+    }
+}
+
+async function listFiles() {
+    const path = document.getElementById('list-path').value.trim() || '/';
+    try {
+        const files = await puter.fs.readdir(path);
+        const list = document.getElementById('file-list');
+        list.innerHTML = '';
+        if (!files.length) {
+            list.innerHTML = '<li style="color:#aaa; justify-content:center;">No files found.</li>';
+            return;
+        }
+        files.forEach(file => {
+            const li = document.createElement('li');
+            li.innerHTML = `
+                <div class="file-name">
+                    <span>${file.is_dir ? '📁' : '📄'}</span>
+                    <span>${file.name}</span>
+                    <span style="color:#555; font-size:0.8rem;">${file.is_dir ? 'Folder' : formatSize(file.size)}</span>
+                </div>
+                <div class="file-actions">
+                    ${!file.is_dir ? `<button class="btn btn-secondary" style="padding:4px 10px; font-size:0.8rem;" onclick="loadFileToEditor('${path}/${file.name}')">Edit</button>` : ''}
+                    <button class="btn btn-danger" style="padding:4px 10px; font-size:0.8rem;" onclick="deleteFileByPath('${path}/${file.name}')">Delete</button>
+                </div>
+            `;
+            list.appendChild(li);
+        });
+    } catch(e) {
+        toast('❌ Error: ' + e.message);
+    }
+}
+
+function formatSize(bytes) {
+    if (!bytes) return '0 B';
+    const k = 1024;
+    const sizes = ['B','KB','MB','GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+}
+
+async function loadFileToEditor(path) {
+    document.getElementById('file-name').value = path;
+    await readFile();
+    showTab('files');
+}
+
+async function deleteFileByPath(path) {
+    try {
+        await puter.fs.delete(path);
+        toast('🗑️ Deleted!');
+        listFiles();
+    } catch(e) {
+        toast('❌ Error: ' + e.message);
+    }
+}
+
+// ==================== AI CHAT ====================
+
+let chatHistory = [];
+
+async function sendChat() {
+    const input = document.getElementById('chat-input').value.trim();
+    const model = document.getElementById('ai-model').value;
+    const system = document.getElementById('ai-system').value.trim();
+    if (!input) return;
+
+    addChatMsg('user', input);
+    document.getElementById('chat-input').value = '';
+
+    const thinkingEl = addChatMsg('ai', '⏳ Thinking...');
+
+    try {
+        const messages = [];
+        if (system) messages.push({ role: 'system', content: system });
+        messages.push(...chatHistory);
+        messages.push({ role: 'user', content: input });
+
+        const response = await puter.ai.chat(messages, { model });
+        const reply = response?.message?.content || String(response);
+
+        thinkingEl.textContent = reply;
+        chatHistory.push({ role: 'user', content: input });
+        chatHistory.push({ role: 'assistant', content: reply });
+    } catch(e) {
+        thinkingEl.textContent = '❌ Error: ' + e.message;
+    }
+}
+
+function addChatMsg(role, text) {
+    const box = document.getElementById('chat-box');
+    const el = document.createElement('div');
+    el.className = 'chat-msg ' + role;
+    el.textContent = text;
+    box.appendChild(el);
+    box.scrollTop = box.scrollHeight;
+    return el;
+}
+
+function clearChat() {
+    chatHistory = [];
+    document.getElementById('chat-box').innerHTML = '<div class="chat-msg ai">👋 Chat cleared! Ask me anything.</div>';
+}
+
+async function generateImage() {
+    const prompt = document.getElementById('img-prompt').value.trim();
+    if (!prompt) return toast('⚠️ Enter an image prompt');
+    const out = document.getElementById('img-output');
+    out.innerHTML = '<span class="loader"></span> Generating...';
+    try {
+        const image = await puter.ai.txt2img(prompt);
+        out.innerHTML = '';
+        const img = document.createElement('img');
+        img.src = image.src;
+        img.style = 'max-width:100%; border-radius:10px; border:1px solid rgba(255,255,255,0.1);';
+        out.appendChild(img);
+    } catch(e) {
+        out.textContent = '❌ Error: ' + e.message;
+    }
+}
+
+// ==================== KEY-VALUE ====================
+
+async function kvSet() {
+    const key = document.getElementById('kv-set-key').value.trim();
+    const val = document.getElementById('kv-set-val').value.trim();
+    if (!key) return toast('⚠️ Enter a key');
+    try {
+        await puter.kv.set(key, val);
+        toast('✅ Set: ' + key + ' = ' + val);
+    } catch(e) {
+        toast('❌ Error: ' + e.message);
+    }
+}
+
+async function kvGet() {
+    const key = document.getElementById('kv-get-key').value.trim();
+    if (!key) return toast('⚠️ Enter a key');
+    try {
+        const val = await puter.kv.get(key);
+        setOutput('kv-output', val !== null ? key + ' = ' + val : '(key not found)');
+    } catch(e) {
+        setOutput('kv-output', '❌ Error: ' + e.message);
+    }
+}
+
+async function kvDelete() {
+    const key = document.getElementById('kv-get-key').value.trim();
+    if (!key) return toast('⚠️ Enter a key');
+    try {
+        await puter.kv.del(key);
+        setOutput('kv-output', '✅ Deleted: ' + key);
+        toast('🗑️ Deleted!');
+    } catch(e) {
+        setOutput('kv-output', '❌ Error: ' + e.message);
+    }
+}
+
+async function kvList() {
+    try {
+        const keys = await puter.kv.list(true); // true = include values
+        if (!keys || !keys.length) {
+            setOutput('kv-list-output', '(no entries found)');
+            return;
+        }
+        const lines = keys.map(k => `${k.key}  →  ${k.value}`).join('\n');
+        setOutput('kv-list-output', lines);
+    } catch(e) {
+        setOutput('kv-list-output', '❌ Error: ' + e.message);
+    }
+}
+
+// ==================== AUTH ====================
+
+async function authSignIn() {
+    try {
+        await puter.auth.signIn();
+        toast('✅ Signed in!');
+        authCheck();
+    } catch(e) {
+        setOutput('auth-output', '❌ Error: ' + e.message);
+    }
+}
+
+async function authCheck() {
+    try {
+        const user = await puter.auth.getUser();
+        if (user) {
+            setOutput('auth-output', JSON.stringify(user, null, 2));
+        } else {
+            setOutput('auth-output', '❌ Not signed in.');
+        }
+    } catch(e) {
+        setOutput('auth-output', '❌ Error: ' + e.message);
+    }
+}
+
+async function authSignOut() {
+    try {
+        await puter.auth.signOut();
+        setOutput('auth-output', '✅ Signed out.');
+        toast('🚪 Signed out!');
+        document.getElementById('stat-user').textContent = '❌';
+    } catch(e) {
+        setOutput('auth-output', '❌ Error: ' + e.message);
+    }
+}
+
+// ==================== INIT ====================
+window.addEventListener('load', () => {
+    loadDashboard();
+});
+</script>
+</body>
+</html>
