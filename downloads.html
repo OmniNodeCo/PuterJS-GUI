@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PuterJS GUI — Downloads</title>
+    <script src="https://js.puter.com/v2/"></script>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo"><span class="logo-icon">⚡</span><span class="logo-text">Puter<span class="accent">Platform</span></span></div>
+            <button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span><span class="nav-label">Dashboard</span></a>
+            <a href="chat.html" class="nav-item"><span class="nav-icon">🤖</span><span class="nav-label">AI Chat</span></a>
+            <a href="files.html" class="nav-item"><span class="nav-icon">📁</span><span class="nav-label">File Manager</span></a>
+            <a href="downloads.html" class="nav-item active"><span class="nav-icon">⬇️</span><span class="nav-label">Downloads</span></a>
+            <a href="kv.html" class="nav-item"><span class="nav-icon">🗄️</span><span class="nav-label">Key-Value DB</span></a>
+            <a href="auth.html" class="nav-item"><span class="nav-icon">🔐</span><span class="nav-label">Auth</span></a>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="user-badge"><div class="user-avatar">👤</div><div class="user-info"><span class="user-name" id="sidebar-username">Guest</span><span class="user-status">Online</span></div></div>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="topbar">
+            <div class="topbar-left">
+                <button class="mobile-menu" onclick="toggleSidebar()">☰</button>
+                <div class="page-title"><h1>Downloads</h1><span class="breadcrumb">Home / Downloads</span></div>
+            </div>
+            <div class="topbar-right"><button class="topbar-btn" onclick="toggleTheme()">🌗</button></div>
+        </header>
+
+        <div class="content-area">
+            <!-- DOWNLOAD FROM CLOUD -->
+            <div class="card glass">
+                <div class="card-header">
+                    <h2>⬇️ Download from Cloud</h2>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-16">Download any file from your Puter cloud storage to your local device.</p>
+                    <div class="input-group">
+                        <input type="text" class="input" id="download-path" placeholder="File path (e.g. documents/report.pdf)">
+                        <button class="btn btn-primary" onclick="downloadFromCloud()">⬇️ Download</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BATCH DOWNLOAD -->
+            <div class="card glass">
+                <div class="card-header">
+                    <h2>📦 Batch Download</h2>
+                    <button class="btn btn-ghost btn-sm" onclick="loadCloudFiles()">🔄 Load Files</button>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-16">Select multiple files to download at once.</p>
+                    <div class="batch-file-list" id="batch-file-list">
+                        <div class="empty-state">Click "Load Files" to see your cloud files.</div>
+                    </div>
+                    <div class="batch-actions" style="margin-top:14px;">
+                        <button class="btn btn-secondary" onclick="selectAllBatch()">☑️ Select All</button>
+                        <button class="btn btn-primary" onclick="downloadSelected()">⬇️ Download Selected</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DOWNLOAD CHAT HISTORY -->
+            <div class="card glass">
+                <div class="card-header">
+                    <h2>💬 Download Chat History</h2>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-16">Export your saved AI chat conversations.</p>
+                    <div class="download-chat-list" id="download-chat-list">
+                        <div class="empty-state">Loading saved chats...</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- DOWNLOAD KV DATA -->
+            <div class="card glass">
+                <div class="card-header">
+                    <h2>🗄️ Export KV Data</h2>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted mb-16">Export all your Key-Value store data as JSON.</p>
+                    <button class="btn btn-primary" onclick="downloadKVData()">📥 Export All KV Data</button>
+                </div>
+            </div>
+
+            <!-- DOWNLOAD LOG -->
+            <div class="card glass">
+                <div class="card-header">
+                    <h2>📋 Download History</h2>
+                    <button class="btn btn-ghost btn-sm" onclick="clearDownloadHistory()">🗑️ Clear</button>
+                </div>
+                <div class="card-body">
+                    <div class="download-history" id="download-history">
+                        <div class="empty-state">No downloads yet.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="toast-container"></div>
+    <div class="modal-backdrop" id="modal-backdrop" onclick="closeModal()"></div>
+    <div class="modal" id="modal"></div>
+
+    <script src="js/utils.js"></script>
+    <script src="js/downloads.js"></script>
+</body>
+</html>

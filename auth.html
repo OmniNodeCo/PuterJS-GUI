@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PuterJS GUI — Auth</title>
+    <script src="https://js.puter.com/v2/"></script>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo"><span class="logo-icon">⚡</span><span class="logo-text">Puter<span class="accent">Platform</span></span></div>
+            <button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span><span class="nav-label">Dashboard</span></a>
+            <a href="chat.html" class="nav-item"><span class="nav-icon">🤖</span><span class="nav-label">AI Chat</span></a>
+            <a href="files.html" class="nav-item"><span class="nav-icon">📁</span><span class="nav-label">File Manager</span></a>
+            <a href="downloads.html" class="nav-item"><span class="nav-icon">⬇️</span><span class="nav-label">Downloads</span></a>
+            <a href="kv.html" class="nav-item"><span class="nav-icon">🗄️</span><span class="nav-label">Key-Value DB</span></a>
+            <a href="auth.html" class="nav-item active"><span class="nav-icon">🔐</span><span class="nav-label">Auth</span></a>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="user-badge"><div class="user-avatar">👤</div><div class="user-info"><span class="user-name" id="sidebar-username">Guest</span><span class="user-status">Online</span></div></div>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="topbar">
+            <div class="topbar-left">
+                <button class="mobile-menu" onclick="toggleSidebar()">☰</button>
+                <div class="page-title"><h1>Authentication</h1><span class="breadcrumb">Home / Auth</span></div>
+            </div>
+            <div class="topbar-right"><button class="topbar-btn" onclick="toggleTheme()">🌗</button></div>
+        </header>
+
+        <div class="content-area">
+            <div class="auth-container">
+                <div class="card glass auth-card">
+                    <div class="auth-icon">🔐</div>
+                    <h2>Puter Authentication</h2>
+                    <p class="text-muted">Sign in to access your cloud data, files, and AI features.</p>
+                    
+                    <div class="auth-buttons">
+                        <button class="btn btn-primary btn-full btn-lg" onclick="signIn()">
+                            <span class="btn-glow"></span>
+                            🔑 Sign In with Puter
+                        </button>
+                        <button class="btn btn-secondary btn-full" onclick="checkAuth()">
+                            👤 Check Status
+                        </button>
+                        <button class="btn btn-danger btn-full" onclick="signOut()">
+                            🚪 Sign Out
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card glass">
+                    <div class="card-header"><h2>👤 User Profile</h2></div>
+                    <div class="card-body">
+                        <div class="profile-grid" id="profile-grid">
+                            <div class="profile-placeholder">
+                                <div class="profile-avatar-lg">👤</div>
+                                <p class="text-muted">Sign in to see your profile</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="toast-container"></div>
+
+    <script src="js/utils.js"></script>
+    <script src="js/auth.js"></script>
+</body>
+</html>

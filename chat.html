@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PuterJS GUI — AI Chat</title>
+    <script src="https://js.puter.com/v2/"></script>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/chat.css">
+</head>
+<body>
+    <!-- SIDEBAR -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo">
+                <span class="logo-icon">⚡</span>
+                <span class="logo-text">Puter<span class="accent">Platform</span></span>
+            </div>
+            <button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="index.html" class="nav-item">
+                <span class="nav-icon">🏠</span><span class="nav-label">Dashboard</span>
+            </a>
+            <a href="chat.html" class="nav-item active">
+                <span class="nav-icon">🤖</span><span class="nav-label">AI Chat</span>
+            </a>
+            <a href="files.html" class="nav-item">
+                <span class="nav-icon">📁</span><span class="nav-label">File Manager</span>
+            </a>
+            <a href="downloads.html" class="nav-item">
+                <span class="nav-icon">⬇️</span><span class="nav-label">Downloads</span>
+            </a>
+            <a href="kv.html" class="nav-item">
+                <span class="nav-icon">🗄️</span><span class="nav-label">Key-Value DB</span>
+            </a>
+            <a href="auth.html" class="nav-item">
+                <span class="nav-icon">🔐</span><span class="nav-label">Auth</span>
+            </a>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="user-badge" id="user-badge">
+                <div class="user-avatar">👤</div>
+                <div class="user-info">
+                    <span class="user-name" id="sidebar-username">Guest</span>
+                    <span class="user-status">Online</span>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="topbar">
+            <div class="topbar-left">
+                <button class="mobile-menu" onclick="toggleSidebar()">☰</button>
+                <div class="page-title">
+                    <h1>AI Chat</h1>
+                    <span class="breadcrumb">Home / AI Chat</span>
+                </div>
+            </div>
+            <div class="topbar-right">
+                <button class="topbar-btn" onclick="toggleTheme()">🌗</button>
+            </div>
+        </header>
+
+        <div class="content-area chat-layout">
+            <!-- CHAT SIDEBAR -->
+            <div class="chat-sidebar glass" id="chat-sidebar">
+                <div class="chat-sidebar-header">
+                    <h3>💬 Conversations</h3>
+                    <button class="btn btn-sm btn-primary" onclick="newConversation()">+ New</button>
+                </div>
+                <div class="chat-search">
+                    <input type="text" placeholder="Search chats..." id="chat-search-input" oninput="filterChats()">
+                </div>
+                <div class="chat-list" id="chat-list">
+                    <div class="chat-list-empty">No saved conversations yet.</div>
+                </div>
+                <div class="chat-sidebar-actions">
+                    <button class="btn btn-ghost btn-full" onclick="importChat()">📥 Import Chat</button>
+                    <input type="file" id="import-file" accept=".json" style="display:none" onchange="handleImport(event)">
+                </div>
+            </div>
+
+            <!-- MAIN CHAT AREA -->
+            <div class="chat-main">
+                <!-- MODEL SELECTOR -->
+                <div class="model-bar glass">
+                    <div class="model-selector">
+                        <label>Model:</label>
+                        <div class="model-dropdown-wrap">
+                            <input type="text" class="model-search-input" id="model-search" 
+                                   placeholder="Search models..." 
+                                   onfocus="showModelDropdown()" 
+                                   oninput="filterModels()">
+                            <div class="model-dropdown" id="model-dropdown"></div>
+                        </div>
+                        <span class="selected-model-badge" id="selected-model-badge">gpt-4o</span>
+                    </div>
+                    <div class="model-settings">
+                        <button class="btn btn-ghost btn-sm" onclick="toggleSystemPrompt()">⚙️ System</button>
+                        <button class="btn btn-ghost btn-sm" onclick="toggleStreamMode()">
+                            <span id="stream-indicator">📡</span> Stream
+                        </button>
+                        <button class="btn btn-ghost btn-sm" onclick="exportCurrentChat()">📤 Export</button>
+                        <button class="btn btn-ghost btn-sm" onclick="downloadChatMD()">📝 .md</button>
+                        <button class="btn btn-danger btn-sm" onclick="clearChat()">🗑️ Clear</button>
+                    </div>
+                </div>
+
+                <!-- SYSTEM PROMPT -->
+                <div class="system-prompt-bar glass" id="system-prompt-bar" style="display:none;">
+                    <textarea id="system-prompt" placeholder="You are a helpful, creative, and knowledgeable AI assistant..."></textarea>
+                    <button class="btn btn-primary btn-sm" onclick="toggleSystemPrompt()">✓ Apply</button>
+                </div>
+
+                <!-- CHAT MESSAGES -->
+                <div class="chat-messages" id="chat-messages">
+                    <div class="welcome-screen" id="welcome-screen">
+                        <div class="welcome-icon">🤖</div>
+                        <h2>Welcome to Puter AI Chat</h2>
+                        <p>Choose a model and start chatting. Your conversations are saved to the cloud.</p>
+                        <div class="welcome-suggestions">
+                            <button class="suggestion-chip" onclick="useSuggestion('Explain quantum computing in simple terms')">
+                                💡 Explain quantum computing
+                            </button>
+                            <button class="suggestion-chip" onclick="useSuggestion('Write a Python function to sort a list')">
+                                🐍 Python sort function
+                            </button>
+                            <button class="suggestion-chip" onclick="useSuggestion('Create a short sci-fi story about AI')">
+                                📖 Sci-fi AI story
+                            </button>
+                            <button class="suggestion-chip" onclick="useSuggestion('What are the best practices for REST APIs?')">
+                                🔗 REST API practices
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CHAT INPUT -->
+                <div class="chat-input-area glass">
+                    <div class="input-row">
+                        <div class="input-wrapper">
+                            <textarea id="chat-input" placeholder="Type your message... (Shift+Enter for new line)" 
+                                      rows="1" onkeydown="handleChatKey(event)" oninput="autoResize(this)"></textarea>
+                        </div>
+                        <div class="input-actions">
+                            <button class="btn btn-icon" onclick="attachImage()" title="Attach Image">🖼️</button>
+                            <button class="btn btn-primary btn-send" onclick="sendMessage()" id="send-btn">
+                                <span class="send-icon">➤</span>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="input-footer">
+                        <span class="char-count" id="char-count">0 chars</span>
+                        <span class="model-indicator" id="model-indicator">gpt-4o</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="toast-container"></div>
+    <div class="modal-backdrop" id="modal-backdrop" onclick="closeModal()"></div>
+    <div class="modal" id="modal"></div>
+
+    <script src="js/utils.js"></script>
+    <script src="js/models.js"></script>
+    <script src="js/chat.js"></script>
+</body>
+</html>

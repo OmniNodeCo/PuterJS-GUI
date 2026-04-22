@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PuterJS GUI — Key-Value DB</title>
+    <script src="https://js.puter.com/v2/"></script>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/components.css">
+</head>
+<body>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo"><span class="logo-icon">⚡</span><span class="logo-text">Puter<span class="accent">Platform</span></span></div>
+            <button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span><span class="nav-label">Dashboard</span></a>
+            <a href="chat.html" class="nav-item"><span class="nav-icon">🤖</span><span class="nav-label">AI Chat</span></a>
+            <a href="files.html" class="nav-item"><span class="nav-icon">📁</span><span class="nav-label">File Manager</span></a>
+            <a href="downloads.html" class="nav-item"><span class="nav-icon">⬇️</span><span class="nav-label">Downloads</span></a>
+            <a href="kv.html" class="nav-item active"><span class="nav-icon">🗄️</span><span class="nav-label">Key-Value DB</span></a>
+            <a href="auth.html" class="nav-item"><span class="nav-icon">🔐</span><span class="nav-label">Auth</span></a>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="user-badge"><div class="user-avatar">👤</div><div class="user-info"><span class="user-name" id="sidebar-username">Guest</span><span class="user-status">Online</span></div></div>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="topbar">
+            <div class="topbar-left">
+                <button class="mobile-menu" onclick="toggleSidebar()">☰</button>
+                <div class="page-title"><h1>Key-Value DB</h1><span class="breadcrumb">Home / KV Store</span></div>
+            </div>
+            <div class="topbar-right"><button class="topbar-btn" onclick="toggleTheme()">🌗</button></div>
+        </header>
+
+        <div class="content-area">
+            <div class="grid-2">
+                <div class="card glass">
+                    <div class="card-header"><h2>✏️ Set Value</h2></div>
+                    <div class="card-body">
+                        <input type="text" class="input" id="kv-key" placeholder="Key name">
+                        <textarea class="input" id="kv-value" placeholder="Value (string or JSON)" rows="4"></textarea>
+                        <div class="btn-group">
+                            <button class="btn btn-primary" onclick="kvSet()">💾 Set</button>
+                            <button class="btn btn-secondary" onclick="kvSetJSON()">📋 Set as JSON</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card glass">
+                    <div class="card-header"><h2>🔍 Get / Delete</h2></div>
+                    <div class="card-body">
+                        <input type="text" class="input" id="kv-get-key" placeholder="Key to lookup">
+                        <div class="btn-group">
+                            <button class="btn btn-primary" onclick="kvGet()">🔍 Get</button>
+                            <button class="btn btn-danger" onclick="kvDel()">🗑️ Delete</button>
+                            <button class="btn btn-secondary" onclick="kvIncr()">+1 Incr</button>
+                            <button class="btn btn-secondary" onclick="kvDecr()">-1 Decr</button>
+                        </div>
+                        <div class="output-box" id="kv-output">Result appears here...</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card glass">
+                <div class="card-header">
+                    <h2>📋 All Entries</h2>
+                    <div class="header-actions">
+                        <input type="text" class="input-sm" id="kv-filter" placeholder="Filter keys..." oninput="filterKV()">
+                        <button class="btn btn-ghost btn-sm" onclick="kvLoadAll()">🔄 Refresh</button>
+                        <button class="btn btn-ghost btn-sm" onclick="kvExport()">📥 Export JSON</button>
+                        <button class="btn btn-danger btn-sm" onclick="kvDeleteAll()">🗑️ Delete All</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="kv-table-wrap">
+                        <table class="kv-table" id="kv-table">
+                            <thead>
+                                <tr><th>Key</th><th>Value</th><th>Actions</th></tr>
+                            </thead>
+                            <tbody id="kv-table-body">
+                                <tr><td colspan="3" class="text-center text-muted">Click Refresh to load entries</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="toast-container"></div>
+    <div class="modal-backdrop" id="modal-backdrop" onclick="closeModal()"></div>
+    <div class="modal" id="modal"></div>
+
+    <script src="js/utils.js"></script>
+    <script src="js/kv.js"></script>
+</body>
+</html>

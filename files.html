@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PuterJS GUI — File Manager</title>
+    <script src="https://js.puter.com/v2/"></script>
+    <link rel="stylesheet" href="css/main.css">
+    <link rel="stylesheet" href="css/components.css">
+    <link rel="stylesheet" href="css/files.css">
+</head>
+<body>
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="logo"><span class="logo-icon">⚡</span><span class="logo-text">Puter<span class="accent">Platform</span></span></div>
+            <button class="sidebar-toggle" onclick="toggleSidebar()">☰</button>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="index.html" class="nav-item"><span class="nav-icon">🏠</span><span class="nav-label">Dashboard</span></a>
+            <a href="chat.html" class="nav-item"><span class="nav-icon">🤖</span><span class="nav-label">AI Chat</span></a>
+            <a href="files.html" class="nav-item active"><span class="nav-icon">📁</span><span class="nav-label">File Manager</span></a>
+            <a href="downloads.html" class="nav-item"><span class="nav-icon">⬇️</span><span class="nav-label">Downloads</span></a>
+            <a href="kv.html" class="nav-item"><span class="nav-icon">🗄️</span><span class="nav-label">Key-Value DB</span></a>
+            <a href="auth.html" class="nav-item"><span class="nav-icon">🔐</span><span class="nav-label">Auth</span></a>
+        </nav>
+        <div class="sidebar-footer">
+            <div class="user-badge"><div class="user-avatar">👤</div><div class="user-info"><span class="user-name" id="sidebar-username">Guest</span><span class="user-status">Online</span></div></div>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        <header class="topbar">
+            <div class="topbar-left">
+                <button class="mobile-menu" onclick="toggleSidebar()">☰</button>
+                <div class="page-title"><h1>File Manager</h1><span class="breadcrumb">Home / Files</span></div>
+            </div>
+            <div class="topbar-right">
+                <button class="topbar-btn" onclick="toggleTheme()">🌗</button>
+            </div>
+        </header>
+
+        <div class="content-area">
+            <!-- FILE TOOLBAR -->
+            <div class="file-toolbar glass">
+                <div class="path-nav">
+                    <button class="btn btn-ghost btn-sm" onclick="goUp()">⬆️ Up</button>
+                    <button class="btn btn-ghost btn-sm" onclick="goHome()">🏠 Home</button>
+                    <div class="path-display">
+                        <span class="path-icon">📂</span>
+                        <span id="current-path">/</span>
+                    </div>
+                </div>
+                <div class="file-actions-bar">
+                    <button class="btn btn-primary btn-sm" onclick="showNewFileModal()">📄 New File</button>
+                    <button class="btn btn-primary btn-sm" onclick="showNewFolderModal()">📁 New Folder</button>
+                    <button class="btn btn-primary btn-sm" onclick="triggerUpload()">⬆️ Upload</button>
+                    <input type="file" id="file-upload-input" multiple style="display:none" onchange="handleUpload(event)">
+                    <div class="view-toggle">
+                        <button class="btn btn-ghost btn-sm" onclick="setView('grid')" id="view-grid">▦</button>
+                        <button class="btn btn-ghost btn-sm active" onclick="setView('list')" id="view-list">☰</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- FILE SEARCH -->
+            <div class="file-search glass">
+                <input type="text" placeholder="Search files and folders..." id="file-search" oninput="filterFiles()">
+                <select id="file-sort" onchange="sortFiles()">
+                    <option value="name">Name</option>
+                    <option value="size">Size</option>
+                    <option value="date">Date</option>
+                    <option value="type">Type</option>
+                </select>
+            </div>
+
+            <!-- DRAG DROP ZONE -->
+            <div class="drop-zone" id="drop-zone">
+                <div class="drop-content">
+                    <span class="drop-icon">📂</span>
+                    <p>Drop files here to upload</p>
+                </div>
+            </div>
+
+            <!-- FILE BROWSER -->
+            <div class="file-browser" id="file-browser">
+                <div class="file-loading">
+                    <div class="spinner"></div>
+                    <p>Loading files...</p>
+                </div>
+            </div>
+
+            <!-- FILE EDITOR MODAL -->
+            <div class="file-editor glass" id="file-editor" style="display:none;">
+                <div class="editor-header">
+                    <h3 id="editor-title">Editing: file.txt</h3>
+                    <div class="editor-actions">
+                        <button class="btn btn-primary btn-sm" onclick="saveEditorFile()">💾 Save</button>
+                        <button class="btn btn-ghost btn-sm" onclick="downloadEditorFile()">⬇️ Download</button>
+                        <button class="btn btn-ghost btn-sm" onclick="closeEditor()">✕ Close</button>
+                    </div>
+                </div>
+                <textarea id="editor-content" class="editor-textarea"></textarea>
+            </div>
+        </div>
+    </main>
+
+    <div id="toast-container"></div>
+    <div class="modal-backdrop" id="modal-backdrop" onclick="closeModal()"></div>
+    <div class="modal" id="modal"></div>
+
+    <script src="js/utils.js"></script>
+    <script src="js/files.js"></script>
+</body>
+</html>

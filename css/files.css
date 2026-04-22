@@ -1,0 +1,285 @@
+/* ===========================
+   FILE MANAGER CSS
+   =========================== */
+
+.file-toolbar {
+    padding: 12px 20px;
+    border-radius: var(--radius-lg);
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.path-nav {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.path-display {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    font-size: 0.82rem;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--accent-primary);
+}
+
+.file-actions-bar {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.view-toggle {
+    display: flex;
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+}
+
+.view-toggle .btn {
+    border-radius: 0;
+    border: none;
+    padding: 6px 10px;
+}
+
+.view-toggle .btn.active {
+    background: rgba(0, 180, 255, 0.15);
+    color: var(--accent-primary);
+}
+
+.file-search {
+    padding: 12px 20px;
+    border-radius: var(--radius-lg);
+    margin-bottom: 16px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.file-search input {
+    flex: 1;
+    margin-bottom: 0;
+}
+
+.file-search select {
+    width: 140px;
+    margin-bottom: 0;
+}
+
+/* DROP ZONE */
+.drop-zone {
+    border: 2px dashed var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 40px;
+    text-align: center;
+    margin-bottom: 16px;
+    transition: var(--transition);
+    display: none;
+}
+
+.drop-zone.active {
+    display: block;
+    border-color: var(--accent-primary);
+    background: rgba(0, 180, 255, 0.04);
+}
+
+.drop-zone.dragover {
+    background: rgba(0, 180, 255, 0.08);
+    border-color: var(--accent-primary);
+    box-shadow: var(--shadow-glow);
+}
+
+.drop-icon {
+    font-size: 2.5rem;
+    margin-bottom: 10px;
+}
+
+/* FILE BROWSER */
+.file-browser {
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    background: var(--bg-glass);
+    border: 1px solid var(--border-color);
+    min-height: 300px;
+}
+
+.file-loading {
+    text-align: center;
+    padding: 60px;
+    color: var(--text-muted);
+}
+
+/* LIST VIEW */
+.file-list-view {
+    display: flex;
+    flex-direction: column;
+}
+
+.file-row {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--border-color);
+    transition: var(--transition);
+    cursor: pointer;
+    gap: 14px;
+}
+
+.file-row:hover {
+    background: var(--bg-tertiary);
+}
+
+.file-row .file-icon {
+    font-size: 1.3rem;
+    width: 36px;
+    text-align: center;
+}
+
+.file-row .file-name {
+    flex: 1;
+    font-size: 0.88rem;
+    font-weight: 500;
+}
+
+.file-row .file-size {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    width: 80px;
+    text-align: right;
+}
+
+.file-row .file-date {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    width: 140px;
+    text-align: right;
+}
+
+.file-row .file-row-actions {
+    display: flex;
+    gap: 6px;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.file-row:hover .file-row-actions {
+    opacity: 1;
+}
+
+/* GRID VIEW */
+.file-grid-view {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 14px;
+    padding: 18px;
+}
+
+.file-grid-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 18px 10px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--border-color);
+    transition: var(--transition);
+    cursor: pointer;
+    gap: 8px;
+    text-align: center;
+}
+
+.file-grid-item:hover {
+    background: var(--bg-tertiary);
+    border-color: var(--accent-primary);
+    transform: translateY(-2px);
+}
+
+.file-grid-item .file-icon {
+    font-size: 2.2rem;
+}
+
+.file-grid-item .file-name {
+    font-size: 0.78rem;
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width: 100%;
+}
+
+.file-grid-item .file-size {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+}
+
+/* EDITOR */
+.file-editor {
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: 20px;
+}
+
+.editor-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border-color);
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.editor-header h3 {
+    font-size: 0.9rem;
+    color: var(--accent-primary);
+}
+
+.editor-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.editor-textarea {
+    width: 100%;
+    min-height: 300px;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.2);
+    border: none;
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+    font-size: 0.85rem;
+    line-height: 1.7;
+    resize: vertical;
+    outline: none;
+    margin-bottom: 0;
+}
+
+/* HEADER ROW */
+.file-list-header {
+    display: flex;
+    align-items: center;
+    padding: 10px 20px;
+    background: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border-color);
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    gap: 14px;
+}
+
+.file-list-header .file-icon { width: 36px; text-align: center; }
+.file-list-header .file-name { flex: 1; }
+.file-list-header .file-size { width: 80px; text-align: right; }
+.file-list-header .file-date { width: 140px; text-align: right; }
+.file-list-header .file-row-actions { width: 80px; }
