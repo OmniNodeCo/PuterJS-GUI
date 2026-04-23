@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="css/main.css">
     <link rel="stylesheet" href="css/components.css">
     <link rel="stylesheet" href="css/chat.css">
+    <link rel="stylesheet" href="assets/loader.css">
 </head>
 <body>
     <!-- SIDEBAR -->
@@ -92,6 +93,9 @@
                     <span class="model-count-badge" id="model-count-badge">0 models</span>
                 </div>
 
+                <!-- MODEL LOADING PROGRESS (inline) -->
+                <div id="model-load-progress"></div>
+
                 <!-- MODEL SELECTOR -->
                 <div class="model-bar glass">
                     <div class="model-selector">
@@ -116,17 +120,17 @@
                         <button class="btn btn-ghost btn-sm" onclick="toggleStreamMode()" title="Toggle Streaming">
                             <span id="stream-indicator">⏸️</span> Stream
                         </button>
-                        <button class="btn btn-ghost btn-sm" onclick="toggleChatSidebar()" title="Toggle Sidebar">📋 History</button>
+                        <button class="btn btn-ghost btn-sm" onclick="toggleChatSidebar()" title="Toggle History">📋 History</button>
                         <button class="btn btn-ghost btn-sm" onclick="exportCurrentChat()" title="Export JSON">📤 Export</button>
                         <button class="btn btn-ghost btn-sm" onclick="downloadChatMD()" title="Export Markdown">📝 .md</button>
-                        <button class="btn btn-ghost btn-sm" onclick="saveToCloud()" title="Save to Cloud File">☁️ Save</button>
-                        <button class="btn btn-danger btn-sm" onclick="clearChat()" title="Clear Chat">🗑️ Clear</button>
+                        <button class="btn btn-ghost btn-sm" onclick="saveToCloud()" title="Save to Cloud">☁️ Save</button>
+                        <button class="btn btn-danger btn-sm" onclick="clearChat()" title="Clear">🗑️ Clear</button>
                     </div>
                 </div>
 
                 <!-- SYSTEM PROMPT -->
                 <div class="system-prompt-bar glass" id="system-prompt-bar" style="display:none;">
-                    <textarea id="system-prompt" placeholder="You are a helpful, creative, and knowledgeable AI assistant. Answer clearly and concisely."></textarea>
+                    <textarea id="system-prompt" placeholder="You are a helpful, creative, and knowledgeable AI assistant."></textarea>
                     <div class="system-prompt-actions">
                         <button class="btn btn-primary btn-sm" onclick="toggleSystemPrompt()">✓ Apply</button>
                         <button class="btn btn-ghost btn-sm" onclick="clearSystemPrompt()">✕ Clear</button>
@@ -140,51 +144,28 @@
                         <h2>Welcome to Puter AI Chat</h2>
                         <p>Choose a model, start chatting. Conversations auto-save to cloud.</p>
                         <div class="welcome-features">
-                            <div class="welcome-feature">
-                                <span>💬</span> 40+ AI Models
-                            </div>
-                            <div class="welcome-feature">
-                                <span>📡</span> Stream Mode
-                            </div>
-                            <div class="welcome-feature">
-                                <span>☁️</span> Cloud Saved
-                            </div>
-                            <div class="welcome-feature">
-                                <span>📤</span> Export/Import
-                            </div>
+                            <div class="welcome-feature"><span>💬</span> 40+ AI Models</div>
+                            <div class="welcome-feature"><span>📡</span> Stream Mode</div>
+                            <div class="welcome-feature"><span>☁️</span> Cloud Saved</div>
+                            <div class="welcome-feature"><span>📤</span> Export/Import</div>
                         </div>
                         <div class="welcome-suggestions">
-                            <button class="suggestion-chip" onclick="useSuggestion('Explain quantum computing in simple terms')">
-                                💡 Explain quantum computing
-                            </button>
-                            <button class="suggestion-chip" onclick="useSuggestion('Write a Python function to sort a list efficiently')">
-                                🐍 Python sort function
-                            </button>
-                            <button class="suggestion-chip" onclick="useSuggestion('Create a short sci-fi story about AI becoming sentient')">
-                                📖 Sci-fi AI story
-                            </button>
-                            <button class="suggestion-chip" onclick="useSuggestion('What are the best practices for REST API design?')">
-                                🔗 REST API best practices
-                            </button>
-                            <button class="suggestion-chip" onclick="useSuggestion('Compare React, Vue, and Angular for web development')">
-                                ⚛️ JS framework comparison
-                            </button>
-                            <button class="suggestion-chip" onclick="useSuggestion('Explain the difference between SQL and NoSQL databases')">
-                                🗃️ SQL vs NoSQL
-                            </button>
+                            <button class="suggestion-chip" onclick="useSuggestion('Explain quantum computing in simple terms')">💡 Explain quantum computing</button>
+                            <button class="suggestion-chip" onclick="useSuggestion('Write a Python function to sort a list efficiently')">🐍 Python sort function</button>
+                            <button class="suggestion-chip" onclick="useSuggestion('Create a short sci-fi story about AI becoming sentient')">📖 Sci-fi AI story</button>
+                            <button class="suggestion-chip" onclick="useSuggestion('What are the best practices for REST API design?')">🔗 REST API practices</button>
+                            <button class="suggestion-chip" onclick="useSuggestion('Compare React, Vue, and Angular for web development')">⚛️ JS frameworks</button>
+                            <button class="suggestion-chip" onclick="useSuggestion('Explain the difference between SQL and NoSQL databases')">🗃️ SQL vs NoSQL</button>
                         </div>
                     </div>
                 </div>
 
                 <!-- CHAT INPUT -->
                 <div class="chat-input-area glass">
-                    <div class="input-attachments" id="input-attachments" style="display:none;">
-                        <div class="attachment-preview" id="attachment-preview"></div>
-                    </div>
                     <div class="input-row">
                         <div class="input-wrapper">
                             <textarea id="chat-input"
-                                      placeholder="Type your message... (Shift+Enter for new line, Enter to send)"
+                                      placeholder="Type your message... (Shift+Enter for new line)"
                                       rows="1"
                                       onkeydown="handleChatKey(event)"
                                       oninput="autoResize(this)"></textarea>
@@ -214,6 +195,7 @@
     <div class="modal" id="modal"></div>
 
     <script src="js/utils.js"></script>
+    <script src="assets/loader.js"></script>
     <script src="js/models.js"></script>
     <script src="js/chat.js"></script>
 </body>

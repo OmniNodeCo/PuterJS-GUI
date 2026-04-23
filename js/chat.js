@@ -1,5 +1,5 @@
 // ===========================
-// CHAT.JS — Full Advanced Chat
+// CHAT.JS — Full with Loader Integration
 // ===========================
 
 let conversations = [];
@@ -7,31 +7,104 @@ let currentConversationId = null;
 let currentMessages = [];
 let streamMode = false;
 let isGenerating = false;
-let abortController = null;
+let pageLoader = null;
+let modelProgress = null;
 
 // ==================== INIT ====================
 document.addEventListener('DOMContentLoaded', async () => {
+
+    // Create page loader
+    pageLoader = new PageLoader({
+        steps: [
+            { label: 'Connecting to Puter...' },
+            { label: 'Loading AI models...' },
+            { label: 'Scanning providers...' },
+            { label: 'Loading conversations...' },
+            { label: 'Preparing interface...' },
+        ],
+        autoHideDelay: 400,
+    });
+
+    // Step 1: Connect
+    pageLoader.startStep(0, 'Connecting to Puter...');
+    pageLoader.setProgress(5);
+    await sleep(300);
+    pageLoader.completeStep(0, '✓ Connected');
+
+    // Step 2: Load models
+    pageLoader.startStep(1, 'Loading AI models...');
+    pageLoader.setProgress(10);
+
+    // Create inline progress bar under model status
+    modelProgress = new InlineProgress('model-load-progress', {
+        height: '4px',
+        showLabel: true,
+    });
+
     updateModelStatus('loading', 'Loading models...');
+
+    // Hook model loading progress
+    modelLoadCallback = (ev) => {
+        if (modelProgress) modelProgress.update(ev.pct, ev.detail);
+        pageLoader.setProgress(10 + (ev.pct * 0.6)); // 10-70% range
+
+        // Update step 2 (providers) during per-provider scan
+        if (ev.step === 'per-provider-start') {
+            pageLoader.completeStep(1, 'Scanning...');
+            pageLoader.startStep(2, 'Scanning providers...');
+        }
+        if (ev.step === 'per-provider-hit') {
+            pageLoader.setStatus(ev.detail);
+        }
+    };
 
     try {
         await initModels();
         const count = loadedModels.length;
-        updateModelStatus('ready', `${count} models available`, count);
+        const providers = Object.keys(modelsByProvider).length;
+
+        updateModelStatus('ready', `${count} models · ${providers} providers`, count);
+        pageLoader.completeStep(1, `${count} models`);
+        pageLoader.completeStep(2, `${providers} providers`);
+
     } catch (err) {
         console.error('Model init error:', err);
         useFallback();
         renderModelDropdown();
         updateModelStatus('error', `Fallback: ${loadedModels.length} models`, loadedModels.length);
+        pageLoader.completeStep(1, 'Fallback', true);
+        pageLoader.completeStep(2, 'Static list', true);
     }
 
+    // Remove inline progress after load
+    setTimeout(() => {
+        if (modelProgress) modelProgress.remove();
+        modelProgress = null;
+    }, 800);
+
+    // Step 3: Load conversations
+    pageLoader.startStep(3, 'Loading conversations...');
+    pageLoader.setProgress(75);
     await loadConversations();
+    pageLoader.completeStep(3, `${conversations.length} chats`);
+
+    // Step 4: Prepare UI
+    pageLoader.startStep(4, 'Preparing interface...');
+    pageLoader.setProgress(90);
+
     if (conversations.length > 0) {
         await switchConversation(conversations[0].id);
     } else {
         newConversation(false);
     }
     updateStreamBadge();
+    pageLoader.completeStep(4, '✓ Ready');
+
+    // Hide loader
+    await pageLoader.hide();
 });
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
 // ==================== MODEL STATUS ====================
 function updateModelStatus(state, text, count) {
@@ -114,16 +187,13 @@ async function switchConversation(id) {
     currentMessages = await loadMessages(id);
 
     const conv = conversations.find(c => c.id === id);
-    if (conv && conv.model) {
-        selectModel(conv.model, conv.model);
-    }
+    if (conv && conv.model) selectModel(conv.model, conv.model);
 
     renderChatList();
     renderMessages();
     showWelcome(currentMessages.length === 0);
     focusInput();
 
-    // Close mobile sidebar
     const sidebar = document.getElementById('chat-sidebar');
     if (sidebar) sidebar.classList.remove('mobile-open');
 }
@@ -135,58 +205,20 @@ async function deleteConversation(id, e) {
     try { await puter.kv.del(`puter_chat_${id}`); } catch {}
 
     if (currentConversationId === id) {
-        if (conversations.length > 0) {
-            await switchConversation(conversations[0].id);
-        } else {
-            newConversation();
-        }
+        if (conversations.length > 0) await switchConversation(conversations[0].id);
+        else newConversation();
     }
     renderChatList();
     toast('Chat deleted', 'info');
 }
 
-async function renameConversation(id, e) {
-    if (e) { e.stopPropagation(); e.preventDefault(); }
-    const conv = conversations.find(c => c.id === id);
-    if (!conv) return;
-
-    showModal(`
-        <h3 style="margin-bottom:14px;">✏️ Rename Chat</h3>
-        <input type="text" class="input" id="rename-input" value="${escapeHtml(conv.title)}" placeholder="Chat title...">
-        <div class="btn-group" style="margin-top:8px;">
-            <button class="btn btn-primary" onclick="doRename('${id}')">Save</button>
-            <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
-        </div>
-    `);
-    setTimeout(() => {
-        const inp = document.getElementById('rename-input');
-        if (inp) { inp.focus(); inp.select(); }
-    }, 100);
-}
-
-async function doRename(id) {
-    const input = document.getElementById('rename-input');
-    const title = input ? input.value.trim() : '';
-    if (!title) return toast('Enter a title', 'error');
-    const conv = conversations.find(c => c.id === id);
-    if (conv) {
-        conv.title = title;
-        await saveConversations();
-        renderChatList();
-        toast('Renamed!', 'success');
-    }
-    closeModal();
-}
-
 function renderChatList() {
     const list = document.getElementById('chat-list');
     if (!list) return;
-
     if (conversations.length === 0) {
         list.innerHTML = '<div class="chat-list-empty">No conversations yet.<br>Click "+ New" to start.</div>';
         return;
     }
-
     list.innerHTML = conversations.map(c => `
         <div class="chat-list-item ${c.id === currentConversationId ? 'active' : ''}"
              onclick="switchConversation('${c.id}')">
@@ -202,9 +234,9 @@ function renderChatList() {
 }
 
 function filterChats() {
-    const query = (document.getElementById('chat-search-input')?.value || '').toLowerCase();
+    const q = (document.getElementById('chat-search-input')?.value || '').toLowerCase();
     document.querySelectorAll('.chat-list-item').forEach(item => {
-        item.style.display = item.textContent.toLowerCase().includes(query) ? '' : 'none';
+        item.style.display = item.textContent.toLowerCase().includes(q) ? '' : 'none';
     });
 }
 
@@ -217,21 +249,12 @@ function showWelcome(show) {
 function renderMessages() {
     const container = document.getElementById('chat-messages');
     if (!container) return;
-
     const welcome = document.getElementById('welcome-screen');
     container.innerHTML = '';
     if (welcome) container.appendChild(welcome);
-
-    if (currentMessages.length === 0) {
-        showWelcome(true);
-        return;
-    }
+    if (currentMessages.length === 0) { showWelcome(true); return; }
     showWelcome(false);
-
-    currentMessages.forEach((msg, idx) => {
-        container.appendChild(createMessageEl(msg, idx));
-    });
-
+    currentMessages.forEach((msg, idx) => container.appendChild(createMessageEl(msg, idx)));
     scrollToBottom();
 }
 
@@ -240,23 +263,22 @@ function createMessageEl(msg, idx) {
     const div = document.createElement('div');
     div.className = `message ${role}`;
     div.id = `msg-${idx}`;
-
     const isAI = role === 'ai' || role === 'assistant';
-    const contentHtml = isAI ? mdToHtml(msg.content || '') : escapeHtml(msg.content || '');
+    const html = isAI ? mdToHtml(msg.content || '') : escapeHtml(msg.content || '');
 
     div.innerHTML = `
         <div class="message-avatar">${isAI ? '🤖' : '👤'}</div>
         <div class="message-body">
-            <div class="message-content">${contentHtml}</div>
+            <div class="message-content">${html}</div>
             ${msg.image ? `<img class="message-image" src="${msg.image}" onclick="window.open(this.src)" alt="Generated image">` : ''}
             <div class="message-actions">
-                <button onclick="copyMessage(${idx})" title="Copy">📋 Copy</button>
-                <button onclick="deleteMessage(${idx})" title="Delete">🗑️ Delete</button>
-                ${msg.role === 'user' ? `<button onclick="editMessage(${idx})" title="Edit">✏️ Edit</button>` : ''}
-                ${msg.role === 'user' ? `<button onclick="regenerateFrom(${idx})" title="Regenerate">🔄 Retry</button>` : ''}
-                ${isAI ? `<button onclick="regenerateResponse(${idx})" title="Regenerate Response">🔄 Regen</button>` : ''}
+                <button onclick="copyMessage(${idx})">📋 Copy</button>
+                <button onclick="deleteMessage(${idx})">🗑️ Delete</button>
+                ${msg.role === 'user' ? `<button onclick="editMessage(${idx})">✏️ Edit</button>` : ''}
+                ${msg.role === 'user' ? `<button onclick="regenerateFrom(${idx})">🔄 Retry</button>` : ''}
+                ${isAI ? `<button onclick="regenerateResponse(${idx})">🔄 Regen</button>` : ''}
             </div>
-            <div class="message-time">${msg.time || ''} ${msg.model ? '· ' + msg.model : ''}</div>
+            <div class="message-time">${msg.time || ''}${msg.model ? ' · ' + msg.model : ''}</div>
         </div>
     `;
     return div;
@@ -264,14 +286,12 @@ function createMessageEl(msg, idx) {
 
 function addMessage(role, content, extra = {}) {
     const msg = {
-        role,
-        content,
+        role, content,
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         model: role === 'user' ? undefined : selectedModel,
         ...extra,
     };
     currentMessages.push(msg);
-
     const container = document.getElementById('chat-messages');
     showWelcome(false);
     container.appendChild(createMessageEl(msg, currentMessages.length - 1));
@@ -285,8 +305,8 @@ function updateLastAIMessage(content) {
     currentMessages[idx].content = content;
     const el = document.getElementById(`msg-${idx}`);
     if (el) {
-        const contentEl = el.querySelector('.message-content');
-        if (contentEl) contentEl.innerHTML = mdToHtml(content);
+        const c = el.querySelector('.message-content');
+        if (c) c.innerHTML = mdToHtml(content);
     }
     scrollToBottom();
 }
@@ -314,18 +334,13 @@ function removeTypingIndicator() {
 }
 
 function scrollToBottom() {
-    const container = document.getElementById('chat-messages');
-    if (container) {
-        requestAnimationFrame(() => {
-            container.scrollTop = container.scrollHeight;
-        });
-    }
+    const c = document.getElementById('chat-messages');
+    if (c) requestAnimationFrame(() => { c.scrollTop = c.scrollHeight; });
 }
 
-// ==================== SEND MESSAGE ====================
+// ==================== SEND ====================
 async function sendMessage() {
     if (isGenerating) return;
-
     const input = document.getElementById('chat-input');
     const text = (input.value || '').trim();
     if (!text) return;
@@ -333,49 +348,37 @@ async function sendMessage() {
     input.value = '';
     autoResize(input);
     updateCharCount();
-
     addMessage('user', text);
     updateConvMeta(text);
-
     isGenerating = true;
     toggleButtons(true);
     addTypingIndicator();
 
     try {
-        const systemPrompt = document.getElementById('system-prompt')?.value?.trim();
-        const messages = buildMessagePayload(systemPrompt);
+        const sys = document.getElementById('system-prompt')?.value?.trim();
+        const messages = buildPayload(sys);
 
         if (streamMode) {
             removeTypingIndicator();
             addMessage('assistant', '');
-            let fullContent = '';
-
-            const response = await puter.ai.chat(messages, {
-                model: selectedModel,
-                stream: true,
-            });
-
-            for await (const part of response) {
-                if (!isGenerating) break; // stopped
+            let full = '';
+            const resp = await puter.ai.chat(messages, { model: selectedModel, stream: true });
+            for await (const part of resp) {
+                if (!isGenerating) break;
                 const chunk = part?.text || part?.message?.content || '';
-                if (chunk) {
-                    fullContent += chunk;
-                    updateLastAIMessage(fullContent);
-                }
+                if (chunk) { full += chunk; updateLastAIMessage(full); }
             }
-
-            currentMessages[currentMessages.length - 1].content = fullContent;
+            currentMessages[currentMessages.length - 1].content = full;
             currentMessages[currentMessages.length - 1].model = selectedModel;
         } else {
-            const response = await puter.ai.chat(messages, { model: selectedModel });
+            const resp = await puter.ai.chat(messages, { model: selectedModel });
             removeTypingIndicator();
-            const reply = response?.message?.content || response?.text || String(response);
+            const reply = resp?.message?.content || resp?.text || String(resp);
             addMessage('assistant', reply);
         }
 
         await saveCurrentMessages();
         updateConvMeta();
-
     } catch (e) {
         removeTypingIndicator();
         if (e.name !== 'AbortError') {
@@ -388,35 +391,27 @@ async function sendMessage() {
     toggleButtons(false);
 }
 
-function buildMessagePayload(systemPrompt) {
-    const messages = [];
-    if (systemPrompt) messages.push({ role: 'system', content: systemPrompt });
-
+function buildPayload(sys) {
+    const msgs = [];
+    if (sys) msgs.push({ role: 'system', content: sys });
     currentMessages.forEach(m => {
-        const role = (m.role === 'ai') ? 'assistant' : m.role;
-        if (role === 'user' || role === 'assistant') {
-            messages.push({ role, content: m.content });
-        }
+        const role = m.role === 'ai' ? 'assistant' : m.role;
+        if (role === 'user' || role === 'assistant') msgs.push({ role, content: m.content });
     });
-
-    return messages;
+    return msgs;
 }
 
 function stopGeneration() {
     isGenerating = false;
     removeTypingIndicator();
     toggleButtons(false);
-    toast('Generation stopped', 'info');
+    toast('Stopped', 'info');
 }
 
 // ==================== MESSAGE ACTIONS ====================
 function copyMessage(idx) {
-    const msg = currentMessages[idx];
-    if (msg) {
-        navigator.clipboard.writeText(msg.content).then(() => {
-            toast('Copied!', 'success');
-        });
-    }
+    const m = currentMessages[idx];
+    if (m) navigator.clipboard.writeText(m.content).then(() => toast('Copied!', 'success'));
 }
 
 async function deleteMessage(idx) {
@@ -424,324 +419,235 @@ async function deleteMessage(idx) {
     renderMessages();
     await saveCurrentMessages();
     updateConvMeta();
-    toast('Message deleted', 'info');
+    toast('Deleted', 'info');
 }
 
 function editMessage(idx) {
-    const msg = currentMessages[idx];
-    if (!msg) return;
-
+    const m = currentMessages[idx];
+    if (!m) return;
     showModal(`
         <h3 style="margin-bottom:14px;">✏️ Edit Message</h3>
-        <textarea class="input" id="edit-msg-input" rows="5" style="min-height:120px;">${escapeHtml(msg.content)}</textarea>
+        <textarea class="input" id="edit-msg" rows="5" style="min-height:120px;">${escapeHtml(m.content)}</textarea>
         <div class="btn-group" style="margin-top:8px;">
-            <button class="btn btn-primary" onclick="doEditMessage(${idx})">Save & Resend</button>
-            <button class="btn btn-secondary" onclick="doEditMessageOnly(${idx})">Save Only</button>
+            <button class="btn btn-primary" onclick="doEditResend(${idx})">Save & Resend</button>
+            <button class="btn btn-secondary" onclick="doEditOnly(${idx})">Save Only</button>
             <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
         </div>
     `);
 }
 
-async function doEditMessage(idx) {
-    const input = document.getElementById('edit-msg-input');
-    const text = input ? input.value.trim() : '';
-    if (!text) return;
-
-    // Remove all messages from this point onward
+async function doEditResend(idx) {
+    const t = document.getElementById('edit-msg')?.value?.trim();
+    if (!t) return;
     currentMessages = currentMessages.slice(0, idx);
     closeModal();
     renderMessages();
-
-    // Send as new message
-    document.getElementById('chat-input').value = text;
+    document.getElementById('chat-input').value = t;
     await sendMessage();
 }
 
-async function doEditMessageOnly(idx) {
-    const input = document.getElementById('edit-msg-input');
-    const text = input ? input.value.trim() : '';
-    if (!text) return;
-
-    currentMessages[idx].content = text;
+async function doEditOnly(idx) {
+    const t = document.getElementById('edit-msg')?.value?.trim();
+    if (!t) return;
+    currentMessages[idx].content = t;
     closeModal();
     renderMessages();
     await saveCurrentMessages();
-    toast('Message updated', 'success');
+    toast('Updated', 'success');
 }
 
 async function regenerateFrom(idx) {
-    const userMsg = currentMessages[idx];
-    if (!userMsg || userMsg.role !== 'user') return;
-
+    const m = currentMessages[idx];
+    if (!m || m.role !== 'user') return;
     currentMessages = currentMessages.slice(0, idx);
     renderMessages();
-
-    document.getElementById('chat-input').value = userMsg.content;
+    document.getElementById('chat-input').value = m.content;
     await sendMessage();
 }
 
 async function regenerateResponse(idx) {
-    if (idx < 1) return;
-    // Find the user message before this AI response
-    let userIdx = idx - 1;
-    while (userIdx >= 0 && currentMessages[userIdx].role !== 'user') userIdx--;
-    if (userIdx < 0) return;
-
-    const userMsg = currentMessages[userIdx];
+    let ui = idx - 1;
+    while (ui >= 0 && currentMessages[ui].role !== 'user') ui--;
+    if (ui < 0) return;
+    const m = currentMessages[ui];
     currentMessages = currentMessages.slice(0, idx);
     renderMessages();
-
-    document.getElementById('chat-input').value = userMsg.content;
+    document.getElementById('chat-input').value = m.content;
     await sendMessage();
 }
 
-// ==================== CONVERSATION META ====================
+// ==================== CONV META ====================
 function updateConvMeta(userText) {
-    const conv = conversations.find(c => c.id === currentConversationId);
-    if (!conv) return;
-
-    conv.updated = new Date().toISOString();
-    conv.model = selectedModel;
-    conv.messageCount = currentMessages.length;
-
-    if (userText && conv.title === 'New Chat') {
-        conv.title = userText.substring(0, 60) + (userText.length > 60 ? '...' : '');
-    }
-
-    if (currentMessages.length > 0) {
-        const last = currentMessages[currentMessages.length - 1];
-        conv.preview = (last.content || '').substring(0, 80);
-    }
-
+    const c = conversations.find(x => x.id === currentConversationId);
+    if (!c) return;
+    c.updated = new Date().toISOString();
+    c.model = selectedModel;
+    c.messageCount = currentMessages.length;
+    if (userText && c.title === 'New Chat')
+        c.title = userText.substring(0, 60) + (userText.length > 60 ? '...' : '');
+    if (currentMessages.length > 0)
+        c.preview = (currentMessages[currentMessages.length - 1].content || '').substring(0, 80);
     saveConversations();
     renderChatList();
 }
 
-// ==================== STREAM MODE ====================
+// ==================== STREAM ====================
 function toggleStreamMode() {
     streamMode = !streamMode;
-    const indicator = document.getElementById('stream-indicator');
-    if (indicator) indicator.textContent = streamMode ? '📡' : '⏸️';
+    const ind = document.getElementById('stream-indicator');
+    if (ind) ind.textContent = streamMode ? '📡' : '⏸️';
     updateStreamBadge();
     toast(`Stream: ${streamMode ? 'ON' : 'OFF'}`, 'info');
 }
 
 function updateStreamBadge() {
-    const badge = document.getElementById('stream-badge');
-    if (badge) {
-        badge.textContent = `Stream: ${streamMode ? 'ON' : 'OFF'}`;
-        badge.className = `stream-badge ${streamMode ? 'on' : ''}`;
-    }
+    const b = document.getElementById('stream-badge');
+    if (b) { b.textContent = `Stream: ${streamMode ? 'ON' : 'OFF'}`; b.className = `stream-badge ${streamMode ? 'on' : ''}`; }
 }
 
 // ==================== SYSTEM PROMPT ====================
 function toggleSystemPrompt() {
     const bar = document.getElementById('system-prompt-bar');
     if (bar) {
-        const visible = bar.style.display !== 'none';
-        bar.style.display = visible ? 'none' : 'flex';
-        if (!visible) {
-            const ta = document.getElementById('system-prompt');
-            if (ta) ta.focus();
-        }
+        const v = bar.style.display !== 'none';
+        bar.style.display = v ? 'none' : 'flex';
+        if (!v) document.getElementById('system-prompt')?.focus();
     }
 }
-
 function clearSystemPrompt() {
     const ta = document.getElementById('system-prompt');
     if (ta) ta.value = '';
-    toast('System prompt cleared', 'info');
+    toast('Cleared', 'info');
 }
 
-// ==================== CHAT SIDEBAR TOGGLE ====================
+// ==================== SIDEBAR TOGGLE ====================
 function toggleChatSidebar() {
-    const sidebar = document.getElementById('chat-sidebar');
-    if (!sidebar) return;
-
+    const s = document.getElementById('chat-sidebar');
+    if (!s) return;
     if (window.innerWidth <= 900) {
-        sidebar.classList.toggle('mobile-open');
-        sidebar.classList.remove('hidden');
+        s.classList.toggle('mobile-open');
+        s.classList.remove('hidden');
     } else {
-        sidebar.classList.toggle('hidden');
+        s.classList.toggle('hidden');
     }
 }
 
 // ==================== EXPORT / IMPORT ====================
 function exportCurrentChat() {
-    if (currentMessages.length === 0) return toast('Nothing to export', 'error');
-    const conv = conversations.find(c => c.id === currentConversationId);
-    const data = {
-        id: currentConversationId,
-        title: conv?.title || 'Chat',
-        model: selectedModel,
-        messages: currentMessages,
-        exported: new Date().toISOString(),
-        version: 2,
-    };
-    downloadText(JSON.stringify(data, null, 2), `chat-${currentConversationId}.json`, 'application/json');
-    toast('Chat exported as JSON', 'success');
+    if (!currentMessages.length) return toast('Nothing to export', 'error');
+    const c = conversations.find(x => x.id === currentConversationId);
+    downloadText(JSON.stringify({
+        id: currentConversationId, title: c?.title || 'Chat', model: selectedModel,
+        messages: currentMessages, exported: new Date().toISOString(), version: 2,
+    }, null, 2), `chat-${currentConversationId}.json`, 'application/json');
+    toast('Exported JSON', 'success');
 }
 
 function downloadChatMD() {
-    if (currentMessages.length === 0) return toast('Nothing to export', 'error');
-    const conv = conversations.find(c => c.id === currentConversationId);
-    let md = `# ${conv?.title || 'Chat'}\n\n`;
-    md += `**Model:** ${selectedModel}  \n`;
-    md += `**Date:** ${new Date().toLocaleString()}  \n`;
-    md += `**Messages:** ${currentMessages.length}  \n\n---\n\n`;
-
+    if (!currentMessages.length) return toast('Nothing to export', 'error');
+    const c = conversations.find(x => x.id === currentConversationId);
+    let md = `# ${c?.title || 'Chat'}\n\n**Model:** ${selectedModel}  \n**Date:** ${new Date().toLocaleString()}\n**Messages:** ${currentMessages.length}\n\n---\n\n`;
     currentMessages.forEach(m => {
-        const role = m.role === 'user' ? '👤 **You**' : '🤖 **AI**';
-        md += `### ${role}`;
-        if (m.model) md += ` *(${m.model})*`;
-        if (m.time) md += ` — ${m.time}`;
-        md += `\n\n${m.content}\n\n---\n\n`;
+        const r = m.role === 'user' ? '👤 **You**' : '🤖 **AI**';
+        md += `### ${r}${m.model ? ` *(${m.model})*` : ''}${m.time ? ` — ${m.time}` : ''}\n\n${m.content}\n\n---\n\n`;
     });
-
     downloadText(md, `chat-${currentConversationId}.md`);
-    toast('Chat exported as Markdown', 'success');
+    toast('Exported Markdown', 'success');
 }
 
 async function saveToCloud() {
-    if (currentMessages.length === 0) return toast('Nothing to save', 'error');
-    const conv = conversations.find(c => c.id === currentConversationId);
-    const filename = `chats/chat-${currentConversationId}.json`;
-    const data = {
-        id: currentConversationId,
-        title: conv?.title || 'Chat',
-        model: selectedModel,
-        messages: currentMessages,
-        saved: new Date().toISOString(),
-    };
+    if (!currentMessages.length) return toast('Nothing to save', 'error');
+    const c = conversations.find(x => x.id === currentConversationId);
+    const fn = `chats/chat-${currentConversationId}.json`;
     try {
-        await puter.fs.write(filename, JSON.stringify(data, null, 2), { overwrite: true, createMissingParents: true });
-        toast('Saved to cloud: ' + filename, 'success');
-    } catch (e) {
-        toast('Save error: ' + e.message, 'error');
-    }
+        await puter.fs.write(fn, JSON.stringify({
+            id: currentConversationId, title: c?.title, model: selectedModel,
+            messages: currentMessages, saved: new Date().toISOString(),
+        }, null, 2), { overwrite: true, createMissingParents: true });
+        toast('Saved: ' + fn, 'success');
+    } catch (e) { toast('Error: ' + e.message, 'error'); }
 }
 
-function importChat() {
-    document.getElementById('import-file').click();
-}
+function importChat() { document.getElementById('import-file').click(); }
 
 async function handleImport(event) {
     const file = event.target.files[0];
     if (!file) return;
     try {
-        const text = await file.text();
-        const data = JSON.parse(text);
-
-        if (!data.messages || !Array.isArray(data.messages)) {
-            throw new Error('Invalid chat file: missing messages array');
-        }
-
+        const data = JSON.parse(await file.text());
+        if (!data.messages || !Array.isArray(data.messages)) throw new Error('Invalid chat file');
         const id = uid();
-        const conv = {
-            id,
-            title: data.title || 'Imported Chat',
-            model: data.model || 'gpt-4o-mini',
-            created: data.exported || data.saved || new Date().toISOString(),
-            updated: new Date().toISOString(),
-            preview: data.messages.length > 0
-                ? data.messages[data.messages.length - 1].content?.substring(0, 80)
-                : '',
+        conversations.unshift({
+            id, title: data.title || 'Imported', model: data.model || 'gpt-4o-mini',
+            created: data.exported || new Date().toISOString(), updated: new Date().toISOString(),
+            preview: data.messages.length ? data.messages[data.messages.length - 1].content?.substring(0, 80) : '',
             messageCount: data.messages.length,
-        };
-
-        conversations.unshift(conv);
+        });
         await saveConversations();
         await puter.kv.set(`puter_chat_${id}`, JSON.stringify(data.messages));
         await switchConversation(id);
-        toast(`Imported: ${data.messages.length} messages`, 'success');
-    } catch (e) {
-        toast('Import error: ' + e.message, 'error');
-    }
+        toast(`Imported ${data.messages.length} messages`, 'success');
+    } catch (e) { toast('Import error: ' + e.message, 'error'); }
     event.target.value = '';
 }
 
-// ==================== IMAGE GENERATION ====================
+// ==================== IMAGE GEN ====================
 async function generateImage() {
     const input = document.getElementById('chat-input');
     const prompt = (input.value || '').trim();
-    if (!prompt) return toast('Enter an image prompt', 'error');
-
+    if (!prompt) return toast('Enter image prompt', 'error');
     input.value = '';
     autoResize(input);
-
     addMessage('user', `🎨 Generate image: ${prompt}`);
     updateConvMeta(prompt);
     isGenerating = true;
     toggleButtons(true);
     addTypingIndicator();
-
     try {
-        const image = await puter.ai.txt2img(prompt);
+        const img = await puter.ai.txt2img(prompt);
         removeTypingIndicator();
-
-        if (image && image.src) {
-            addMessage('assistant', `Image generated for: "${prompt}"`, { image: image.src });
-        } else {
-            addMessage('assistant', '❌ Image generation returned no result.');
-        }
-
+        if (img?.src) addMessage('assistant', `Image: "${prompt}"`, { image: img.src });
+        else addMessage('assistant', '❌ No image result');
         await saveCurrentMessages();
         updateConvMeta();
     } catch (e) {
         removeTypingIndicator();
         addMessage('assistant', `❌ Image error: ${e.message}`);
-        toast('Image error: ' + e.message, 'error');
     }
-
     isGenerating = false;
     toggleButtons(false);
 }
 
 // ==================== CLEAR ====================
 function clearChat() {
-    if (currentMessages.length === 0) return;
-
+    if (!currentMessages.length) return;
     showModal(`
         <h3 style="margin-bottom:14px;">🗑️ Clear Chat?</h3>
-        <p class="text-muted" style="margin-bottom:20px;">This will delete all messages in this conversation. This cannot be undone.</p>
+        <p class="text-muted" style="margin-bottom:20px;">Delete all messages in this conversation?</p>
         <div class="btn-group">
-            <button class="btn btn-danger" onclick="doClearChat()">🗑️ Clear</button>
+            <button class="btn btn-danger" onclick="doClear()">🗑️ Clear</button>
             <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
         </div>
     `);
 }
 
-async function doClearChat() {
+async function doClear() {
     closeModal();
     currentMessages = [];
     renderMessages();
     showWelcome(true);
     await saveCurrentMessages();
-
-    const conv = conversations.find(c => c.id === currentConversationId);
-    if (conv) {
-        conv.preview = '';
-        conv.title = 'New Chat';
-        conv.messageCount = 0;
-    }
+    const c = conversations.find(x => x.id === currentConversationId);
+    if (c) { c.preview = ''; c.title = 'New Chat'; c.messageCount = 0; }
     await saveConversations();
     renderChatList();
-    toast('Chat cleared', 'info');
+    toast('Cleared', 'info');
 }
 
-// ==================== SUGGESTIONS ====================
-function useSuggestion(text) {
-    document.getElementById('chat-input').value = text;
-    sendMessage();
-}
+function useSuggestion(t) { document.getElementById('chat-input').value = t; sendMessage(); }
 
 // ==================== UI HELPERS ====================
-function handleChatKey(event) {
-    if (event.key === 'Enter' && !event.shiftKey) {
-        event.preventDefault();
-        sendMessage();
-    }
-}
+function handleChatKey(e) { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }
 
 function autoResize(el) {
     if (!el) return;
@@ -751,43 +657,30 @@ function autoResize(el) {
 }
 
 function updateCharCount() {
-    const input = document.getElementById('chat-input');
-    const counter = document.getElementById('char-count');
-    if (counter && input) counter.textContent = (input.value || '').length + ' chars';
+    const i = document.getElementById('chat-input');
+    const c = document.getElementById('char-count');
+    if (c && i) c.textContent = (i.value || '').length + ' chars';
 }
 
-function focusInput() {
-    setTimeout(() => {
-        const input = document.getElementById('chat-input');
-        if (input) input.focus();
-    }, 100);
+function focusInput() { setTimeout(() => document.getElementById('chat-input')?.focus(), 100); }
+
+function toggleButtons(gen) {
+    const s = document.getElementById('send-btn');
+    const t = document.getElementById('stop-btn');
+    if (s) s.style.display = gen ? 'none' : 'flex';
+    if (t) t.style.display = gen ? 'flex' : 'none';
 }
 
-function toggleButtons(generating) {
-    const sendBtn = document.getElementById('send-btn');
-    const stopBtn = document.getElementById('stop-btn');
+function escapeHtml(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
 
-    if (sendBtn) sendBtn.style.display = generating ? 'none' : 'flex';
-    if (stopBtn) stopBtn.style.display = generating ? 'flex' : 'none';
-}
-
-// ==================== HELPERS ====================
-function escapeHtml(str) {
-    const div = document.createElement('div');
-    div.textContent = str || '';
-    return div.innerHTML;
-}
-
-function timeAgo(dateStr) {
-    if (!dateStr) return '';
-    const now = new Date();
-    const then = new Date(dateStr);
-    const diff = Math.floor((now - then) / 1000);
+function timeAgo(ds) {
+    if (!ds) return '';
+    const diff = Math.floor((Date.now() - new Date(ds)) / 1000);
     if (isNaN(diff)) return '';
     if (diff < 10) return 'Just now';
     if (diff < 60) return diff + 's ago';
     if (diff < 3600) return Math.floor(diff / 60) + 'm ago';
     if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
     if (diff < 604800) return Math.floor(diff / 86400) + 'd ago';
-    return then.toLocaleDateString();
+    return new Date(ds).toLocaleDateString();
 }

@@ -1,10 +1,11 @@
 // ===========================
-// MODELS.JS — Dynamic + Fallback Model Loading
+// MODELS.JS — Dynamic + Fallback + Progress
 // ===========================
 
 let selectedModel = 'gpt-4o-mini';
 let loadedModels = [];
 let modelsByProvider = {};
+let modelLoadCallback = null; // set by chat.js
 
 const STATIC_MODELS = {
     'OpenAI': [
@@ -52,7 +53,20 @@ const STATIC_MODELS = {
     ],
 };
 
-// ---- INIT MODELS ----
+const PROVIDER_LIST = [
+    'openai', 'anthropic', 'google', 'mistralai', 'meta-llama',
+    'deepseek', 'xai', 'cohere', 'qwen', 'together',
+    'groq', 'perplexity', 'fireworks'
+];
+
+// ---- progress helper ----
+function emitProgress(step, pct, detail) {
+    if (typeof modelLoadCallback === 'function') {
+        modelLoadCallback({ step, pct, detail });
+    }
+}
+
+// ---- INIT ----
 async function initModels() {
     const badge = document.getElementById('selected-model-badge');
     const indicator = document.getElementById('model-indicator');
@@ -60,7 +74,8 @@ async function initModels() {
 
     let loaded = false;
 
-    // Attempt 1: listModels() no args
+    // Step 1: listModels() no args
+    emitProgress('api-noarg', 5, 'Trying puter.ai.listModels()...');
     if (!loaded) {
         try {
             const result = await puter.ai.listModels();
@@ -69,15 +84,16 @@ async function initModels() {
                 loadedModels = parsed;
                 modelsByProvider = groupByProvider(parsed);
                 loaded = true;
-                console.log(`✅ listModels(): ${parsed.length} models`);
+                emitProgress('api-noarg-done', 90, `Found ${parsed.length} models`);
             }
         } catch (e) {
-            console.warn('listModels() failed:', e.message);
+            emitProgress('api-noarg-fail', 10, 'listModels() failed: ' + e.message);
         }
     }
 
-    // Attempt 2: listModels(null)
+    // Step 2: listModels(null)
     if (!loaded) {
+        emitProgress('api-null', 15, 'Trying listModels(null)...');
         try {
             const result = await puter.ai.listModels(null);
             const parsed = normalizeModelList(result);
@@ -85,47 +101,57 @@ async function initModels() {
                 loadedModels = parsed;
                 modelsByProvider = groupByProvider(parsed);
                 loaded = true;
-                console.log(`✅ listModels(null): ${parsed.length} models`);
+                emitProgress('api-null-done', 90, `Found ${parsed.length} models`);
             }
         } catch (e) {
-            console.warn('listModels(null) failed:', e.message);
+            emitProgress('api-null-fail', 20, 'listModels(null) failed');
         }
     }
 
-    // Attempt 3: per-provider
+    // Step 3: per-provider
     if (!loaded) {
-        const providers = ['openai','anthropic','google','mistralai','meta-llama','deepseek','xai','cohere','qwen'];
-        let anyWorked = false;
+        emitProgress('per-provider-start', 25, 'Scanning providers...');
         modelsByProvider = {};
         loadedModels = [];
+        let anyWorked = false;
 
-        for (const p of providers) {
+        for (let i = 0; i < PROVIDER_LIST.length; i++) {
+            const p = PROVIDER_LIST[i];
+            const pct = 25 + Math.round((i / PROVIDER_LIST.length) * 55);
+            emitProgress('per-provider', pct, `Checking ${p}...`);
             try {
                 const result = await puter.ai.listModels(p);
                 const parsed = normalizeModelList(result);
                 if (parsed && parsed.length > 0) {
-                    const label = capitalize(p.replace(/-/g,' ').replace('ai','AI').replace('meta llama','Meta'));
+                    const label = formatProviderName(p);
                     modelsByProvider[label] = parsed.map(m => ({ ...m, provider: label }));
                     loadedModels.push(...modelsByProvider[label]);
                     anyWorked = true;
+                    emitProgress('per-provider-hit', pct, `${p}: ${parsed.length} models`);
                 }
             } catch {}
         }
+
         if (anyWorked) {
             loaded = true;
-            console.log(`✅ Per-provider: ${loadedModels.length} models`);
+            emitProgress('per-provider-done', 85, `${loadedModels.length} models from providers`);
+        } else {
+            emitProgress('per-provider-fail', 80, 'No providers responded');
         }
     }
 
-    // Attempt 4: static fallback
+    // Step 4: fallback
     if (!loaded) {
+        emitProgress('fallback', 85, 'Using static fallback models...');
         useFallback();
-        console.log(`📦 Fallback: ${loadedModels.length} static models`);
+        emitProgress('fallback-done', 95, `${loadedModels.length} fallback models loaded`);
     }
 
+    // Done
     if (badge) badge.textContent = selectedModel;
     if (indicator) indicator.textContent = selectedModel;
     renderModelDropdown();
+    emitProgress('complete', 100, `${loadedModels.length} models ready`);
     return modelsByProvider;
 }
 
@@ -133,23 +159,14 @@ async function initModels() {
 function normalizeModelList(result) {
     if (!result) return null;
 
-    // Array of strings
     if (Array.isArray(result) && result.length > 0 && typeof result[0] === 'string') {
         return result.map(id => ({ id, name: formatModelName(id), provider: guessProvider(id), tag: getModelTag(id) }));
     }
-
-    // Array of objects
     if (Array.isArray(result) && result.length > 0 && typeof result[0] === 'object') {
         return result.map(m => normalizeEntry(m));
     }
-
-    // { models: [...] }
     if (result.models && Array.isArray(result.models)) return normalizeModelList(result.models);
-
-    // { data: [...] }
     if (result.data && Array.isArray(result.data)) return normalizeModelList(result.data);
-
-    // Object keyed by provider
     if (typeof result === 'object' && !Array.isArray(result)) {
         const all = [];
         Object.entries(result).forEach(([prov, models]) => {
@@ -164,7 +181,6 @@ function normalizeModelList(result) {
         });
         return all.length > 0 ? all : null;
     }
-
     return null;
 }
 
@@ -179,18 +195,16 @@ function normalizeEntry(m, fallbackProvider) {
     return { id, name, provider, tag };
 }
 
-// ---- GROUPING ----
 function groupByProvider(models) {
-    const groups = {};
+    const g = {};
     models.forEach(m => {
         const p = capitalize(m.provider || guessProvider(m.id));
-        if (!groups[p]) groups[p] = [];
-        groups[p].push({ ...m, provider: p });
+        if (!g[p]) g[p] = [];
+        g[p].push({ ...m, provider: p });
     });
-    return groups;
+    return g;
 }
 
-// ---- GUESS PROVIDER ----
 function guessProvider(id) {
     if (!id) return 'Other';
     const l = id.toLowerCase();
@@ -205,17 +219,25 @@ function guessProvider(id) {
     if (l.includes('command')) return 'Cohere';
     if (l.includes('phi')) return 'Microsoft';
     if (l.includes('dbrx')) return 'Databricks';
-    if (l.includes('nous') || l.includes('hermes')) return 'NousResearch';
-    if (l.includes('wizard')) return 'WizardLM';
     return 'Other';
 }
 
-// ---- FORMAT ----
 function formatModelName(id) {
     if (!id) return 'Unknown';
     return id.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
         .replace(/\bGpt\b/g, 'GPT').replace(/\bAi\b/g, 'AI')
         .replace(/(\d+)b\b/gi, '$1B');
+}
+
+function formatProviderName(p) {
+    const map = {
+        'openai': 'OpenAI', 'anthropic': 'Anthropic', 'google': 'Google',
+        'mistralai': 'Mistral', 'meta-llama': 'Meta', 'deepseek': 'DeepSeek',
+        'xai': 'xAI', 'cohere': 'Cohere', 'qwen': 'Qwen',
+        'together': 'Together', 'groq': 'Groq', 'perplexity': 'Perplexity',
+        'fireworks': 'Fireworks',
+    };
+    return map[p] || capitalize(p);
 }
 
 function getModelTag(id) {
@@ -233,7 +255,6 @@ function getModelTag(id) {
 
 function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : 'Other'; }
 
-// ---- FALLBACK ----
 function useFallback() {
     modelsByProvider = {};
     loadedModels = [];
@@ -243,7 +264,7 @@ function useFallback() {
     });
 }
 
-// ---- RENDER DROPDOWN ----
+// ---- DROPDOWN ----
 function renderModelDropdown(filter = '') {
     const dd = document.getElementById('model-dropdown');
     if (!dd) return;
@@ -251,7 +272,8 @@ function renderModelDropdown(filter = '') {
     const q = (filter || '').toLowerCase().trim();
 
     if (loadedModels.length === 0) {
-        dd.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);"><div class="spinner" style="width:18px;height:18px;border-width:2px;margin:0 auto 8px;"></div>Loading models...</div>';
+        dd.innerHTML = `<div style="padding:20px;text-align:center;color:var(--text-muted);">
+            <div class="spinner" style="width:18px;height:18px;border-width:2px;margin:0 auto 8px;"></div>Loading models...</div>`;
         return;
     }
 
@@ -264,7 +286,6 @@ function renderModelDropdown(filter = '') {
             (m.tag || '').toLowerCase().includes(q) ||
             provider.toLowerCase().includes(q)
         ) : models;
-
         if (filtered.length === 0) return;
 
         const label = document.createElement('div');
@@ -294,7 +315,6 @@ function renderModelDropdown(filter = '') {
     }
 }
 
-// ---- SELECT ----
 function selectModel(id, name) {
     selectedModel = id;
     const badge = document.getElementById('selected-model-badge');
@@ -324,8 +344,4 @@ function filterModels() {
     showModelDropdown();
 }
 
-function esc(s) {
-    const d = document.createElement('div');
-    d.textContent = s || '';
-    return d.innerHTML;
-}
+function esc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
