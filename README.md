@@ -6,7 +6,7 @@ cloud file management, downloads, key-value storage, and authentication.
 ## 🚀 Features
 
 ### 🤖 AI Chat
-- **40+ AI Models**: GPT-4o, Claude 3.5, Gemini 2.0, Llama 3.3, Mistral, DeepSeek, Qwen, Grok & more
+- **300+ AI Models**: GPT-4o, Claude 3.5, Gemini 2.0, Llama 3.3, Mistral, DeepSeek, Qwen, Grok & more
 - **Model Search**: Fuzzy search across all providers
 - **Stream Mode**: Real-time token streaming
 - **System Prompts**: Customizable AI behavior
